@@ -15,8 +15,8 @@
   ---------
     download_pdb(pdb_id)
     read_sequence(pdb_id, pdb_chain)
-    get_alignment_file(pdb_id, pdb_chain, aa_seq)
-    consensus_alignment(pdb_id, pdb_chain, aa_seq, muscle_exe)
+    blast_alignment(pdb_id, pdb_chain, aa_seq)
+    consensus_sequence(pdb_id, pdb_chain, aa_seq, muscle_exe)
 
 """
 
@@ -87,9 +87,9 @@ def read_sequence(pdb_id:str, pdb_chain:str) -> 'Bio.Seq.Seq':
             aminoacid_seq = chain.seq   # Extract the amino acid sequence of the protein chain of interest
             return aminoacid_seq
 
-def get_alignment_file(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq') -> None:
+def blast_alignment(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq') -> None:
     """
-        Obtain a BLAST alignment from an amino acid sequence.
+        Perform a BLAST search and alignment for an amino acid sequence.
 
         Several files are generated and named based on the PDB ID and
         chain ID (e.g. XXXX, Y):
@@ -196,7 +196,7 @@ def get_alignment_file(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq') -> None:
     else:
         SeqIO.write(fasta_list[0:len(fasta_list)], align_handle, "fasta")
 
-def consensus_alignment(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq', muscle_exe:str='muscle.exe') -> None:
+def consensus_sequence(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq', muscle_exe:str='muscle.exe') -> None:
     """
         Get a consensus sequence based on a BLAST result and print on
         the screen its alignment to the original sequence
