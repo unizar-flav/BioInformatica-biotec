@@ -29,18 +29,21 @@ from urllib import request
 
 import Bio
 from Bio import AlignIO, SeqIO, pairwise2
-from Bio.Align import AlignInfo
+from Bio.Align import AlignInfo, substitution_matrices
 from Bio.Align.Applications import MuscleCommandline
 from Bio.Blast import NCBIWWW, NCBIXML
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-from Bio.SubsMat.MatrixInfo import blosum62
 
 try:
     import colorama
     from colorama import Fore, Style
 except ImportError:
     colorama = None
+
+
+##  CONSTANTS  ########################################################
+BLOSUM62 = substitution_matrices.load('BLOSUM62')       # BLOSUM62 substitution matrix
 
 
 ##  FUNCTIONS  ########################################################
@@ -216,7 +219,7 @@ def consensus_alignment(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq', muscle_
     alignment = AlignIO.read(StringIO(stdout), "fasta")
     summary_align = AlignInfo.SummaryInfo(alignment)            # Object for studying properties of the alignment
     consensus = summary_align.dumb_consensus(threshold=0.5)     # Makes the simple consensus, with X as the no-consensus symbol
-    res = pairwise2.align.globalds(aa_seq, consensus, blosum62, -10, -0.5)
+    res = pairwise2.align.globalds(aa_seq, consensus, BLOSUM62, -10, -0.5)
     _fancy_seq_print(res)
 
 
