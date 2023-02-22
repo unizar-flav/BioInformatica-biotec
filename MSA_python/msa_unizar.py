@@ -28,18 +28,12 @@ from io import StringIO
 from urllib import request
 
 import Bio
-from Bio import AlignIO, SeqIO, pairwise2
-from Bio.Align import AlignInfo, substitution_matrices
+from Bio import AlignIO, SeqIO
+from Bio.Align import AlignInfo, substitution_matrices, PairwiseAligner
 from Bio.Align.Applications import MuscleCommandline
 from Bio.Blast import NCBIWWW, NCBIXML
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
-try:
-    import colorama
-    from colorama import Fore, Style
-except ImportError:
-    colorama = None
 
 
 ##  CONSTANTS  ########################################################
@@ -216,11 +210,17 @@ def consensus_sequence(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq', muscle_e
     file_in = f"{pdb_id}-{pdb_chain}_align.fasta"
     muscle_cline = MuscleCommandline(os.path.abspath(muscle_exe), input=file_in)
     stdout, stderr = muscle_cline()
-    alignment = AlignIO.read(StringIO(stdout), "fasta")
-    summary_align = AlignInfo.SummaryInfo(alignment)            # Object for studying properties of the alignment
-    consensus = summary_align.dumb_consensus(threshold=0.5)     # Makes the simple consensus, with X as the no-consensus symbol
-    res = pairwise2.align.globalds(aa_seq, consensus, BLOSUM62, -10, -0.5)
-    _fancy_seq_print(res)
+    muscle_alignment = AlignIO.read(StringIO(stdout), "fasta")
+    summary_align = AlignInfo.SummaryInfo(muscle_alignment)         # Object for studying properties of the alignment
+    consensus_seq = summary_align.dumb_consensus(threshold=0.5)     # Makes the simple consensus, with X as the no-consensus symbol
+    aligner = PairwiseAligner()
+    aligner.mode = 'global'
+    aligner.substitution_matrix = BLOSUM62
+    aligner.open_gap_score = -10
+    aligner.extend_gap_score = -0.5
+    aa_consensus_alignment = aligner.align(aa_seq, consensus_seq)   # align the consensus sequence to the reference sequence
+    aa_consensus_alignment_fmt = format(aa_consensus_alignment[0]).replace("target   ", "reference").replace("query    ", "consensus")
+    print(aa_consensus_alignment_fmt)
 
 
 ##  PRIVATE FUNCTIONS  ################################################
@@ -284,33 +284,3 @@ def _clean_xml(file_dir:str) -> None:
     if not check_dict["BO"]:
         file_out.write("</BlastOutput>\n")
     file_out.close()
-
-def _fancy_seq_print(alignment:'Bio.pairwise2', line_lenght:int=25) -> None:
-    """
-        Print a sequence alignment and comparison in a fancy way
-
-        Parameters
-        ----------
-        alignment : Bio.pairwise2
-            alignment object
-        line_length : int, optional
-            number of residues to print per line
-    """
-
-    raw = pairwise2.format_alignment(*alignment[0]).split("\n")
-    seq1, seq_relation, seq2 = raw[0], raw[1], raw[2]
-
-    if colorama:
-        colorama.init()
-        colors = [Fore.RED if j == 'X' else Fore.CYAN if i == j else Fore.YELLOW for i, j in zip(seq1, seq2)]
-        c_normal = Style.RESET_ALL
-    else:
-        colors = [""]*len(seq1)
-        c_normal = ""
-
-    for i in range(len(seq1)):
-        if i % line_lenght == 0:
-            print(f"\n\n{i+1:4d}  {seq1[i:min(len(seq1),i+line_lenght)]}\n"+" "*6, end="")
-            print(f"{seq_relation[i:min(len(seq_relation),i+line_lenght)]}\n"+" "*6, end="")
-        print(f"{colors[i]}{seq2[i]}{c_normal}", end="")
-    print()
