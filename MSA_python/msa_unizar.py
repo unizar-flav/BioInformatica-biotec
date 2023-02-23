@@ -24,17 +24,16 @@
 ##  DEPENDENCIES  #####################################################
 
 import os
+import subprocess
 from io import StringIO
 from urllib import request
 
 import Bio
 from Bio import AlignIO, SeqIO
-from Bio.Align import AlignInfo, substitution_matrices, PairwiseAligner
-from Bio.Align.Applications import MuscleCommandline
+from Bio.Align import AlignInfo, PairwiseAligner, substitution_matrices
 from Bio.Blast import NCBIWWW, NCBIXML
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
-
 
 ##  CONSTANTS  ########################################################
 BLOSUM62 = substitution_matrices.load('BLOSUM62')       # BLOSUM62 substitution matrix
@@ -208,9 +207,9 @@ def consensus_sequence(pdb_id:str, pdb_chain:str, aa_seq:'Bio.Seq.Seq', muscle_e
     """
 
     file_in = f"{pdb_id}-{pdb_chain}_align.fasta"
-    muscle_cline = MuscleCommandline(os.path.abspath(muscle_exe), input=file_in)
-    stdout, stderr = muscle_cline()
-    muscle_alignment = AlignIO.read(StringIO(stdout), "fasta")
+    muscle_exe = os.path.abspath(muscle_exe)
+    muscle_cli = subprocess.run([muscle_exe, "-in", file_in], capture_output=True, text=True)
+    muscle_alignment = AlignIO.read(StringIO(muscle_cli.stdout), "fasta")
     summary_align = AlignInfo.SummaryInfo(muscle_alignment)         # Object for studying properties of the alignment
     consensus_seq = summary_align.dumb_consensus(threshold=0.5)     # Makes the simple consensus, with X as the no-consensus symbol
     aligner = PairwiseAligner()
